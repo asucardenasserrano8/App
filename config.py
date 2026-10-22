@@ -67,6 +67,13 @@ AlphaVantage = os.getenv("AP3")
 # CSS personalizado mejorado — estilos que se ven igual de bien en ambos temas
 _CSS_BASE = """
 <style>
+    /* Ancho completo de la página (en Streamlit Cloud a veces queda "centrada") */
+    [data-testid="stMainBlockContainer"], .block-container {
+        max-width: 100% !important;
+        padding-left: 3rem !important;
+        padding-right: 3rem !important;
+    }
+
     /* Indicadores de métricas */
     .metric-positive { color: #28a745; font-weight: bold; }
     .metric-negative { color: #dc3545; font-weight: bold; }
