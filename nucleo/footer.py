@@ -118,7 +118,7 @@ def mostrar_footer(stonk, info, nombre):
     st.markdown("""
     ---
     <p style='text-align: center; font-size: 13px; color: gray;'>
-    © 2025 Todos los derechos reservados. Desarrollado por <strong>Jesús Alberto Cárdenas Serrano.</strong>
+    © 2026 Todos los derechos reservados. Desarrollado por <strong>Jesús Alberto Cárdenas Serrano.</strong>
     <br><em>Esta aplicación es con fines educativos. No constituye asesoramiento financiero.</em>
     </p>
     """, unsafe_allow_html=True)

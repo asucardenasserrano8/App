@@ -398,16 +398,17 @@ def mostrar_seccion_inicio(stonk, ticker, info, nombre, descripcion, start_date,
                 sp500_change = ((current_sp500 - previous_sp500) / previous_sp500) * 100
                 sp500_change_abs = current_sp500 - previous_sp500
             else:
-                # Datos de respaldo para el índice
-                current_sp500 = 4780.94
-                previous_sp500 = 4750.79
-                sp500_change = 0.63
-                sp500_change_abs = 30.15
+                # Sin datos del índice: se muestra N/D (nunca cifras inventadas)
+                current_sp500 = None
+                previous_sp500 = None
+                sp500_change = None
+                sp500_change_abs = None
             
             # Obtener datos en tiempo real para los componentes CON SISTEMA OPTIMIZADO
             market_data = {}
             total_stocks = sum(len(stocks) for stocks in sp500_components.values())
             successful_stocks = 0
+            acciones_sin_datos = []
             
             # Usar datos del cache cuando estén disponibles
             for sector, stocks in sp500_components.items():
@@ -435,40 +436,20 @@ def mostrar_seccion_inicio(stonk, ticker, info, nombre, descripcion, start_date,
                             })
                             successful_stocks += 1
                             
-                        except Exception as e:
-                            # Si hay error en el procesamiento, usar datos simulados rápidos
-                            precio_simulado = 50 + (hash(stock["ticker"]) % 200)
-                            cambio_simulado = (hash(stock["ticker"]) % 40 - 20) / 10
-                            
-                            market_data[sector].append({
-                                **stock,
-                                "current_price": precio_simulado,
-                                "change": cambio_simulado,
-                                "volume": 1000000,
-                                "market_cap": 'N/A',
-                                "sector": sector,
-                                "empresa_info": {"longName": stock["name"]},
-                                "fuente": "simulado"
-                            })
-                            successful_stocks += 1
+                        except Exception:
+                            # Error al procesar: se omite la acción (no se inventan precios)
+                            acciones_sin_datos.append(stock["ticker"])
                     else:
-                        # Usar datos simulados rápidos si no hay datos reales
-                        precio_simulado = 50 + (hash(stock["ticker"]) % 200)
-                        cambio_simulado = (hash(stock["ticker"]) % 40 - 20) / 10
-                        
-                        market_data[sector].append({
-                            **stock,
-                            "current_price": precio_simulado,
-                            "change": cambio_simulado,
-                            "volume": 1000000,
-                            "market_cap": 'N/A',
-                            "sector": sector,
-                            "empresa_info": {"longName": stock["name"]},
-                            "fuente": "simulado"
-                        })
-                        successful_stocks += 1
+                        # Sin datos reales: se omite la acción (no se inventan precios)
+                        acciones_sin_datos.append(stock["ticker"])
             
             st.success(f"✅ **Datos cargados:** {successful_stocks}/{total_stocks} acciones procesadas")
+            if acciones_sin_datos:
+                st.warning(
+                    "No se pudieron obtener datos reales de: "
+                    + ", ".join(acciones_sin_datos)
+                    + ". Se omiten en lugar de mostrar cifras inventadas."
+                )
             
         except Exception as e:
             mostrar_error_amigable(e, "la carga de datos")
@@ -484,12 +465,15 @@ def mostrar_seccion_inicio(stonk, ticker, info, nombre, descripcion, start_date,
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        st.metric(
-            label="S&P 500 INDEX",
-            value=f"{current_sp500:,.2f}",
-            delta=f"{sp500_change_abs:+.2f} ({sp500_change:+.2f}%)",
-            delta_color="normal"
-        )
+        if current_sp500 is not None:
+            st.metric(
+                label="S&P 500 INDEX",
+                value=f"{current_sp500:,.2f}",
+                delta=f"{sp500_change_abs:+.2f} ({sp500_change:+.2f}%)",
+                delta_color="normal"
+            )
+        else:
+            st.metric(label="S&P 500 INDEX", value="N/D")
     
     with col2:
         # Obtener datos YTD reales
@@ -545,9 +529,9 @@ def mostrar_seccion_inicio(stonk, ticker, info, nombre, descripcion, start_date,
                     delta_color="off"
                 )
             else:
-                st.metric(label="P/E RATIO", value="22.5")
+                st.metric(label="P/E RATIO", value="N/D")
         except:
-            st.metric(label="P/E RATIO", value="22.5")
+            st.metric(label="P/E RATIO", value="N/D")
 
     with col4:
         # Calcular dividend yield promedio ponderado del S&P 500
@@ -559,10 +543,11 @@ def mostrar_seccion_inicio(stonk, ticker, info, nombre, descripcion, start_date,
             for sector, stocks in market_data.items():
                 for stock in stocks:
                     if (stock.get('empresa_info') and 
-                        stock['empresa_info'].get('dividendYield') != 'N/A' and
-                        stock['empresa_info'].get('dividendYield') is not None):
+                        stock['empresa_info'].get('dividendRate') is not None and
+                        stock.get('current_price')):
                         try:
-                            dy = float(stock['empresa_info']['dividendYield'])
+                            # Rendimiento = dividendo anual por acción / precio actual
+                            dy = float(stock['empresa_info']['dividendRate']) / float(stock['current_price'])
                             if dy >= 0 and dy < 0.1:  # Filtro para valores razonables (0-10%)
                                 weight = stock.get('weight', 0.1)
                                 total_dy += dy * weight
@@ -579,10 +564,10 @@ def mostrar_seccion_inicio(stonk, ticker, info, nombre, descripcion, start_date,
                     delta_color="off"
                 )
             else:
-                # Valor por defecto si no se puede calcular
-                st.metric(label="DIVIDEND YIELD", value="1.42%")
+                # Sin datos suficientes: N/D (no se muestra un valor inventado)
+                st.metric(label="DIVIDEND YIELD", value="N/D")
         except:
-            st.metric(label="DIVIDEND YIELD", value="1.42%")
+            st.metric(label="DIVIDEND YIELD", value="N/D")
     
     with col5:
         # Market Cap total estimado
