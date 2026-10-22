@@ -1,0 +1,15 @@
+# Llaves y variables de entorno — NUNCA subir esto a un repositorio
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Sistema operativo / editor
+.DS_Store
+.vscode/
